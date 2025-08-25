@@ -128,6 +128,9 @@ Set up the required environment (Minikube, ArgoCD, and GitHub), then create the 
    git push -u origin main
    ```
 
+      **Screenshot:** Initialize Git and Push to GitHub
+      ![Initialize Git and Push to GitHub](./images/4.git_repo.png)
+
 10. **Final Directory Structure Should Look Like:**
 
 ```
@@ -148,3 +151,231 @@ argocd-application-project/
 * ArgoCD installed in the cluster
 * GitHub repository created and linked
 * Fully created project directory with required sub-directories, placeholder YAML files, and initial commit pushed to GitHub
+
+
+## **Task 2: Deploy Sample Application with ArgoCD**
+
+### **Objective:**
+
+Deploy the sample application to the Minikube cluster using ArgoCD, leveraging environment-specific manifests (`dev` and `prod`) and ensure the app is version-controlled via GitHub.
+
+### **Steps:**
+
+1. **Create Namespaces**
+
+```bash
+kubectl create namespace dev
+kubectl create namespace prod
+```
+
+**Screenshot:** Create Namespaces for dev & prod
+![Create Namespaces for dev & prod](./images/5.kubectl_creates_dev_prod.png)
+
+**Explanation:**
+Namespaces separate environments and allow ArgoCD to manage them independently.
+
+2. **Create Kubernetes Service**
+
+**2.1 Dev environment:** `k8s/dev/service.yaml`
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: sample-app-service
+spec:
+  selector:
+    app: sample-app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000
+  type: NodePort
+```
+
+**2.2 Prod environment:** `k8s/prod/service.yaml`
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: sample-app-service
+spec:
+  selector:
+    app: sample-app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000
+  type: NodePort
+```
+
+**Explanation:**
+Exposes the application in the cluster. `NodePort` allows external access. Adjust `targetPort` if your container uses a different port.
+
+3. **Update Deployment YAML**
+
+**3.1 Dev environment:** `k8s/dev/deployment.yaml`
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sample-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sample-app
+  template:
+    metadata:
+      labels:
+        app: sample-app
+    spec:
+      containers:
+        - name: sample-app
+          image: holuphilix/sample-app:latest
+          ports:
+            - containerPort: 3000
+```
+
+**3.2 Prod environment:** `k8s/prod/deployment.yaml`
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sample-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: sample-app
+  template:
+    metadata:
+      labels:
+        app: sample-app
+    spec:
+      containers:
+        - name: sample-app
+          image: holuphilix/sample-app:latest
+          ports:
+            - containerPort: 3000
+```
+
+**Explanation:**
+
+* Dev uses 1 replica, Prod uses 2 replicas for higher availability.
+* Container image and port must match the actual application.
+
+4. **Create ArgoCD Application Manifests**
+
+**4.1 Dev environment:** `k8s/dev/app-definition.yaml`
+
+```yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sample-app-dev
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Holuphilix/sample-app.git
+    targetRevision: main
+    path: k8s/dev
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+```
+
+**4.2 Prod environment:** `k8s/prod/app-definition.yaml`
+
+```yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sample-app-prod
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Holuphilix/sample-app.git
+    targetRevision: main
+    path: k8s/prod
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: prod
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+```
+
+**Explanation:**
+
+* Dev and Prod applications are separated for independent management.
+* `prune: true` removes resources deleted in Git.
+* `selfHeal: true` automatically corrects drift from desired state.
+
+5. **Apply ArgoCD Applications**
+
+```bash
+kubectl apply -f k8s/dev/app-definition.yaml
+kubectl apply -f k8s/prod/app-definition.yaml
+```
+
+**Screenshot:** Apply ArgoCD Applications
+![Apply ArgoCD Applications](./images/6.kubectl_apply_dev_prod.png)
+
+**Explanation:**
+Registers both applications with ArgoCD and starts deployment.
+
+6. **Verify Deployment**
+
+1. Forward the ArgoCD server port:
+
+```bash
+kubectl port-forward svc/argocd-server -n argocd 8080:443
+```
+
+**Screenshot:** Forward the ArgoCD server port
+![Forward the ArgoCD server port](./images/7.kubect_port_forward_svc.png)
+
+2. Access ArgoCD UI at [https://localhost:8080](https://localhost:8080) and log in with admin credentials.
+
+3. Get ArgoCD Admin Password:
+
+```bash
+kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath="{.data.password}" | base64 -d; echo
+```
+
+**Screenshot:** Get ArgoCD Admin Password
+![Get ArgoCD Admin Password](./images/8.Argocd_get_password.png)
+
+4. Confirm that **sample-app-dev** and **sample-app-prod** are **Synced** and **Healthy**.
+
+**Screenshot:** Sample app Synced and Healthy
+![Sample app Synced and Healthy](./images/9.sample_app_prod_dev.png)
+
+7. **Commit and Push to GitHub**
+
+```bash
+git add k8s/dev k8s/prod
+git commit -m "Add dev and prod deployment, service, and ArgoCD application manifests"
+git push origin main
+```
+
+**Explanation:**
+Keeps ArgoCD in sync with Git for proper GitOps workflow.
+
+### **Deliverables for Task 2**
+
+* `service.yaml`, `deployment.yaml`, and `app-definition.yaml` for both **dev** and **prod** environments.
+* Running applications managed by ArgoCD in **dev** and **prod** namespaces.
+* Verified deployments through ArgoCD UI and CLI.
+* GitHub repository updated with all environment manifests.
