@@ -379,3 +379,103 @@ Keeps ArgoCD in sync with Git for proper GitOps workflow.
 * Running applications managed by ArgoCD in **dev** and **prod** namespaces.
 * Verified deployments through ArgoCD UI and CLI.
 * GitHub repository updated with all environment manifests.
+
+
+## **Task 3: Manage Application Lifecycle with ArgoCD**
+
+### **Objective:**
+
+Learn how to manage the application lifecycle in ArgoCD, including **syncing**, **monitoring health**, and **performing rollbacks** for both **dev** and **prod** environments.
+
+### **Steps:**
+
+1. **Sync the Application**
+
+   Synchronize the application state in ArgoCD to match the Git repository:
+
+   **3.1 Dev environment:**
+
+   ```bash
+   argocd app sync sample-app-dev
+   ```
+
+   **3.2 Prod environment:**
+
+   ```bash
+   argocd app sync sample-app-prod
+   ```
+   **Screenshot:** Sync the Application
+   ![Sync the Application](./images/10.argocd_app_sync_sample_app_dev_prod.png)
+
+   **Explanation:**
+   Syncing ensures that the Kubernetes cluster reflects the **desired state** defined in Git.
+
+2. **Monitor Health and Status**
+
+   Check the status and health of applications:
+
+   **3.1 Dev environment:**
+
+   ```bash
+   argocd app get sample-app-dev
+   ```
+
+   **3.2 Prod environment:**
+
+   ```bash
+   argocd app get sample-app-prod
+   ```
+
+   **Explanation:**
+   This command shows **sync status**, **health status**, and other details to confirm the application is running as expected.
+
+   **Screenshot:** ArgoCD App Status
+   ![ArgoCD App Status](./images/11.argocd_app_get_sample_app_prod_dev.png)
+
+3. **Perform Rollbacks**
+
+   Rollback the application to a previous deployment if needed:
+
+   **3.1 Dev environment:**
+
+   ```bash
+   argocd app rollback sample-app-dev
+   ```
+
+   **3.2 Prod environment:**
+
+   ```bash
+   argocd app rollback sample-app-prod
+   ```
+
+   **Explanation:**
+   Rollbacks restore the application to a **previous stable state** in case of deployment issues.
+
+
+4. **Commit and Push Changes (if any updates)**
+
+   If you make updates to YAML or ArgoCD manifests, ensure changes are committed to Git:
+
+   ```bash
+   git add k8s/dev k8s/prod
+   git commit -m "Update application lifecycle management and rollback configuration"
+   git push origin main
+   ```
+
+   **Explanation:**
+   Keeping Git updated ensures ArgoCD can **track the latest desired state** and maintain GitOps workflow.
+
+---
+
+### **Deliverables for Task 3**
+
+* Applications synced with the Git repository for **dev** and **prod** environments.
+* Verified **health status** and **sync status** for both environments using ArgoCD CLI/UI.
+* Rollback functionality tested and documented.
+* Git repository updated with any lifecycle management changes.
+
+---
+
+If you want, I can now prepare **Task 4**, which will strictly focus on **Structuring Git Repositories for ArgoCD (Module 2, Lesson 2.3)** so we maintain full alignment with the project tasks.
+
+Do you want me to go ahead with Task 4?
