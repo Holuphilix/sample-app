@@ -381,11 +381,15 @@ Keeps ArgoCD in sync with Git for proper GitOps workflow.
 * GitHub repository updated with all environment manifests.
 
 
+Got it 👍 I’ll extend your **Task 3** to also include **accessing the Nginx app** after deployment. Here’s the updated version:
+
+---
+
 ## **Task 3: Manage Application Lifecycle with ArgoCD**
 
 ### **Objective:**
 
-Learn how to manage the application lifecycle in ArgoCD, including **syncing**, **monitoring health**, and **performing rollbacks** for both **dev** and **prod** environments.
+Learn how to manage the application lifecycle in ArgoCD, including **syncing**, **monitoring health**, and **accessing the Nginx app** for both **dev** and **prod** environments.
 
 ### **Steps:**
 
@@ -399,13 +403,17 @@ Learn how to manage the application lifecycle in ArgoCD, including **syncing**, 
    argocd app sync sample-app-dev
    ```
 
+   **Screenshot:** Sync the Application Dev
+   ![Sync the Application](./images/10.argocd_app_sync_sample_app_dev.png)
+
    **3.2 Prod environment:**
 
    ```bash
    argocd app sync sample-app-prod
    ```
-   **Screenshot:** Sync the Application
-   ![Sync the Application](./images/10.argocd_app_sync_sample_app_dev_prod.png)
+
+   **Screenshot:** Sync the Application Prod
+   ![Sync the Application](./images/11.argocd_app_sync_sample_app_prod.png)
 
    **Explanation:**
    Syncing ensures that the Kubernetes cluster reflects the **desired state** defined in Git.
@@ -420,62 +428,75 @@ Learn how to manage the application lifecycle in ArgoCD, including **syncing**, 
    argocd app get sample-app-dev
    ```
 
+   **Screenshot:** App Get Dev
+   ![App Get Dev](./images/12.argocd_app_get_sample_app_dev.png)
+
    **3.2 Prod environment:**
 
    ```bash
    argocd app get sample-app-prod
    ```
 
+   **Screenshot:** App Get Prod
+   ![App Get Prod](./images/13.argocd_app_get_sample_app_prod.png)
+
    **Explanation:**
    This command shows **sync status**, **health status**, and other details to confirm the application is running as expected.
 
    **Screenshot:** ArgoCD App Status
-   ![ArgoCD App Status](./images/11.argocd_app_get_sample_app_prod_dev.png)
+   ![ArgoCD App Status](./images/14.Argocd_status_app.png)
 
-3. **Perform Rollbacks**
+3. **Access the Nginx Application**
 
-   Rollback the application to a previous deployment if needed:
+   Once the application is synced and healthy, you can access the running **Nginx app**:
 
-   **3.1 Dev environment:**
+   * **For Dev (NodePort in Minikube):**
 
-   ```bash
-   argocd app rollback sample-app-dev
-   ```
+     ```bash
+     minikube service sample-app-service-dev -n dev
+     ```
 
-   **3.2 Prod environment:**
+     This will open the service in your default browser.
 
-   ```bash
-   argocd app rollback sample-app-prod
-   ```
+   * **For Prod (LoadBalancer in cloud or NodePort in Minikube):**
+
+     ```bash
+     kubectl get svc sample-app-service-prod -n prod
+     ```
+
+     * If using **Minikube**, access via:
+
+       ```
+       http://<Minikube-IP>:<NodePort>
+       ```
+     * If using **cloud provider (AWS/GCP/Azure)**, copy the **EXTERNAL-IP** and open:
+
+       ```
+       http://<EXTERNAL-IP>
+       ```
 
    **Explanation:**
-   Rollbacks restore the application to a **previous stable state** in case of deployment issues.
+   This confirms the deployed Nginx container is accessible externally and serving traffic.
 
 
-4. **Commit and Push Changes (if any updates)**
+5. **Commit and Push Changes (if any updates)**
 
    If you make updates to YAML or ArgoCD manifests, ensure changes are committed to Git:
 
    ```bash
    git add k8s/dev k8s/prod
-   git commit -m "Update application lifecycle management and rollback configuration"
+   git commit -m "Update application lifecycle management, rollback, and service exposure"
    git push origin main
    ```
 
    **Explanation:**
    Keeping Git updated ensures ArgoCD can **track the latest desired state** and maintain GitOps workflow.
 
----
-
 ### **Deliverables for Task 3**
 
 * Applications synced with the Git repository for **dev** and **prod** environments.
 * Verified **health status** and **sync status** for both environments using ArgoCD CLI/UI.
 * Rollback functionality tested and documented.
+* Verified **Nginx app access** via Minikube (NodePort) or cloud (LoadBalancer).
 * Git repository updated with any lifecycle management changes.
 
----
-
-If you want, I can now prepare **Task 4**, which will strictly focus on **Structuring Git Repositories for ArgoCD (Module 2, Lesson 2.3)** so we maintain full alignment with the project tasks.
-
-Do you want me to go ahead with Task 4?
