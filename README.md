@@ -54,64 +54,63 @@ Set up the required environment (Minikube, ArgoCD, and GitHub), then create the 
 ### **Steps:**
 
 1. **Set Up Minikube**
-   Install and start Minikube as the local Kubernetes cluster:
 
    ```bash
    minikube start
    kubectl get nodes
    ```
 
-    **Screenshot:** minikube start
-    ![minikube start](./images/1.minikube_start_get_nodes.png)
+   **Screenshot:** minikube start
+   ![minikube start](./images/1.minikube_start_get_nodes.png)
 
 2. **Set Up ArgoCD**
-   Install ArgoCD in the cluster:
 
    ```bash
    kubectl create namespace argocd
    kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
    ```
-    **Screenshot:** kubectl create namespace argocd
-    ![kubectl create namespace argocd](./images/2.kubectl_create_names_argocd.png)
 
+   **Screenshot:** kubectl create namespace argocd
+   ![kubectl create namespace argocd](./images/2.kubectl_create_names_argocd.png)
 
    Verify installation:
 
    ```bash
    kubectl get pods -n argocd
    ```
-    **Screenshot:** kubectl get pods -n argocd
-    ![kubectl get pods -n argocd](./images/3.kubectl_get_argocd.png)
+
+   **Screenshot:** kubectl get pods -n argocd
+   ![kubectl get pods -n argocd](./images/3.kubectl_get_argocd.png)
 
 3. **Prepare GitHub Repository**
-   Create a new GitHub repository (e.g., `sample-app`) where all project files will be pushed. Copy the remote URL.
+   Create a new GitHub repository (e.g., `sample-app`) and copy the remote URL.
 
-4. **Create the Main Project Directory**
+4. **Create Main Project Directory**
 
    ```bash
    mkdir argocd-application-project
    cd argocd-application-project
    ```
 
-5. **Create Essential Sub-directories**
+5. **Create Sub-directories**
 
    ```bash
    mkdir k8s src images
    ```
 
-6. **Create Environment-specific Directories inside `k8s`**
+6. **Create Environment Directories**
 
    ```bash
    mkdir -p k8s/dev k8s/prod
    ```
 
-7. **Create an Initial `README.md` File**
+7. **Create Initial README**
 
    ```bash
    touch README.md
    ```
 
-8. **(Optional) Add Placeholders for YAML Files**
+8. **(Optional) Add Placeholder YAMLs**
 
    ```bash
    touch k8s/dev/deployment.yaml k8s/prod/deployment.yaml
@@ -128,55 +127,57 @@ Set up the required environment (Minikube, ArgoCD, and GitHub), then create the 
    git push -u origin main
    ```
 
-      **Screenshot:** Initialize Git and Push to GitHub
-      ![Initialize Git and Push to GitHub](./images/4.git_repo.png)
+   **Screenshot:** Initialize Git and Push
+   ![Initialize Git and Push to GitHub](./images/4.git_repo.png)
 
-10. **Final Directory Structure Should Look Like:**
+10. **Final Directory Structure**
 
 ```
 argocd-application-project/
+│
 ├── k8s/
 │   ├── dev/
-│   │   └── deployment.yaml
-│   └── prod/
-│       └── deployment.yaml
+│   │   ├── deployment.yaml
+│   │   ├── service.yaml
+│   │   └── app-definition.yaml
+│   ├── prod/
+│   │   ├── deployment.yaml
+│   │   ├── service.yaml
+│   │   └── app-definition.yaml
 ├── src/
 ├── images/
+│   └── (screenshots for documentation)
 └── README.md
 ```
 
-✅ **Deliverable for Task 1:**
+✅ **Deliverables for Task 1:**
 
 * Minikube running locally
-* ArgoCD installed in the cluster
-* GitHub repository created and linked
-* Fully created project directory with required sub-directories, placeholder YAML files, and initial commit pushed to GitHub
-
+* ArgoCD installed
+* GitHub repository linked
+* Project directory created and pushed
 
 ## **Task 2: Deploy Sample Application with ArgoCD**
 
 ### **Objective:**
 
-Deploy the sample application to the Minikube cluster using ArgoCD, leveraging environment-specific manifests (`dev` and `prod`) and ensure the app is version-controlled via GitHub.
+Deploy the sample application to Minikube using ArgoCD with environment-specific manifests (`dev` and `prod`) and version control via GitHub.
 
 ### **Steps:**
 
 1. **Create Namespaces**
 
-```bash
-kubectl create namespace dev
-kubectl create namespace prod
-```
+   ```bash
+   kubectl create namespace dev
+   kubectl create namespace prod
+   ```
 
-**Screenshot:** Create Namespaces for dev & prod
-![Create Namespaces for dev & prod](./images/5.kubectl_creates_dev_prod.png)
+   **Screenshot:** Namespaces created
+   ![Create Namespaces for dev & prod](./images/5.kubectl_creates_dev_prod.png)
 
-**Explanation:**
-Namespaces separate environments and allow ArgoCD to manage them independently.
+2. **Create Kubernetes Services**
 
-2. **Create Kubernetes Service**
-
-**2.1 Dev environment:** `k8s/dev/service.yaml`
+   **2.1 Dev environment:** `k8s/dev/service.yaml`
 
 ```yaml
 apiVersion: v1
@@ -210,12 +211,9 @@ spec:
   type: NodePort
 ```
 
-**Explanation:**
-Exposes the application in the cluster. `NodePort` allows external access. Adjust `targetPort` if your container uses a different port.
+3. **Update Deployment YAMLs**
 
-3. **Update Deployment YAML**
-
-**3.1 Dev environment:** `k8s/dev/deployment.yaml`
+   **3.1 Dev environment:** `k8s/dev/deployment.yaml`
 
 ```yaml
 apiVersion: apps/v1
@@ -263,14 +261,9 @@ spec:
             - containerPort: 3000
 ```
 
-**Explanation:**
+4. **Create ArgoCD Applications**
 
-* Dev uses 1 replica, Prod uses 2 replicas for higher availability.
-* Container image and port must match the actual application.
-
-4. **Create ArgoCD Application Manifests**
-
-**4.1 Dev environment:** `k8s/dev/app-definition.yaml`
+   **4.1 Dev:** `k8s/dev/app-definition.yaml`
 
 ```yaml
 apiVersion: argoproj.io/v1alpha1
@@ -293,7 +286,7 @@ spec:
       selfHeal: true
 ```
 
-**4.2 Prod environment:** `k8s/prod/app-definition.yaml`
+**4.2 Prod:** `k8s/prod/app-definition.yaml`
 
 ```yaml
 apiVersion: argoproj.io/v1alpha1
@@ -316,12 +309,6 @@ spec:
       selfHeal: true
 ```
 
-**Explanation:**
-
-* Dev and Prod applications are separated for independent management.
-* `prune: true` removes resources deleted in Git.
-* `selfHeal: true` automatically corrects drift from desired state.
-
 5. **Apply ArgoCD Applications**
 
 ```bash
@@ -329,40 +316,26 @@ kubectl apply -f k8s/dev/app-definition.yaml
 kubectl apply -f k8s/prod/app-definition.yaml
 ```
 
-**Screenshot:** Apply ArgoCD Applications
+**Screenshot:** Applications applied
 ![Apply ArgoCD Applications](./images/6.kubectl_apply_dev_prod.png)
 
-**Explanation:**
-Registers both applications with ArgoCD and starts deployment.
-
 6. **Verify Deployment**
-
-1. Forward the ArgoCD server port:
 
 ```bash
 kubectl port-forward svc/argocd-server -n argocd 8080:443
 ```
 
-**Screenshot:** Forward the ArgoCD server port
-![Forward the ArgoCD server port](./images/7.kubect_port_forward_svc.png)
-
-2. Access ArgoCD UI at [https://localhost:8080](https://localhost:8080) and log in with admin credentials.
-
-3. Get ArgoCD Admin Password:
+* Access ArgoCD UI at [https://localhost:8080](https://localhost:8080)
+* Get admin password:
 
 ```bash
 kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath="{.data.password}" | base64 -d; echo
 ```
 
-**Screenshot:** Get ArgoCD Admin Password
-![Get ArgoCD Admin Password](./images/8.Argocd_get_password.png)
-
-4. Confirm that **sample-app-dev** and **sample-app-prod** are **Synced** and **Healthy**.
-
-**Screenshot:** Sample app Synced and Healthy
+**Screenshot:** Verify Apps
 ![Sample app Synced and Healthy](./images/9.sample_app_prod_dev.png)
 
-7. **Commit and Push to GitHub**
+7. **Commit and Push**
 
 ```bash
 git add k8s/dev k8s/prod
@@ -370,135 +343,74 @@ git commit -m "Add dev and prod deployment, service, and ArgoCD application mani
 git push origin main
 ```
 
-**Explanation:**
-Keeps ArgoCD in sync with Git for proper GitOps workflow.
+✅ **Deliverables for Task 2:**
 
-### **Deliverables for Task 2**
-
-* `service.yaml`, `deployment.yaml`, and `app-definition.yaml` for both **dev** and **prod** environments.
-* Running applications managed by ArgoCD in **dev** and **prod** namespaces.
-* Verified deployments through ArgoCD UI and CLI.
-* GitHub repository updated with all environment manifests.
-
+* `service.yaml`, `deployment.yaml`, `app-definition.yaml` for dev & prod
+* Running applications in ArgoCD
+* Verified through ArgoCD UI and CLI
+* GitHub updated
 
 ## **Task 3: Manage Application Lifecycle with ArgoCD**
 
 ### **Objective:**
 
-Learn how to manage the application lifecycle in ArgoCD, including **syncing**, **monitoring health**, and **accessing the Nginx app** for both **dev** and **prod** environments.
+Learn to **sync**, **monitor health**, and manage ArgoCD application lifecycle.
 
 ### **Steps:**
 
 1. **Sync the Application**
 
-   Synchronize the application state in ArgoCD to match the Git repository:
+   **3.1 Dev:**
 
-   **3.1 Dev environment:**
+```bash
+argocd app sync sample-app-dev
+```
 
-   ```bash
-   argocd app sync sample-app-dev
-   ```
+**Screenshot:**
+![Sync the Application](./images/10.argocd_app_sync_sample_app_dev.png)
 
-   **Screenshot:** Sync the Application Dev
-   ![Sync the Application](./images/10.argocd_app_sync_sample_app_dev.png)
+**3.2 Prod:**
 
-   **3.2 Prod environment:**
+```bash
+argocd app sync sample-app-prod
+```
 
-   ```bash
-   argocd app sync sample-app-prod
-   ```
-
-   **Screenshot:** Sync the Application Prod
-   ![Sync the Application](./images/11.argocd_app_sync_sample_app_prod.png)
-
-   **Explanation:**
-   Syncing ensures that the Kubernetes cluster reflects the **desired state** defined in Git.
+**Screenshot:**
+![Sync the Application](./images/11.argocd_app_sync_sample_app_prod.png)
 
 2. **Monitor Health and Status**
 
-   Check the status and health of applications:
+   **3.1 Dev:**
 
-   **3.1 Dev environment:**
+```bash
+argocd app get sample-app-dev
+```
 
-   ```bash
-   argocd app get sample-app-dev
-   ```
+**Screenshot:**
+![App Get Dev](./images/12.argocd_app_get_sample_app_dev.png)
 
-   **Screenshot:** App Get Dev
-   ![App Get Dev](./images/12.argocd_app_get_sample_app_dev.png)
+**3.2 Prod:**
 
-   **3.2 Prod environment:**
+```bash
+argocd app get sample-app-prod
+```
 
-   ```bash
-   argocd app get sample-app-prod
-   ```
+**Screenshot:**
+![App Get Prod](./images/13.argocd_app_get_sample_app_prod.png)
 
-   **Screenshot:** App Get Prod
-   ![App Get Prod](./images/13.argocd_app_get_sample_app_prod.png)
+3. **Commit & Push Updates**
 
-   **Explanation:**
-   This command shows **sync status**, **health status**, and other details to confirm the application is running as expected.
+```bash
+git add k8s/dev k8s/prod
+git commit -m "Update application lifecycle management configuration"
+git push origin main
+```
 
-   **Screenshot:** ArgoCD App Status
-   ![ArgoCD App Status](./images/14.Argocd_status_app.png)
+✅ **Deliverables for Task 3:**
 
-3. **Access the Nginx Application**
-
-   Once the application is synced and healthy, you can access the running **Nginx app**:
-
-   * **For Dev (NodePort in Minikube):**
-
-     ```bash
-     minikube service sample-app-service-dev -n dev
-     ```
-
-     This will open the service in your default browser.
-
-   * **For Prod (LoadBalancer in cloud or NodePort in Minikube):**
-
-     ```bash
-     kubectl get svc sample-app-service-prod -n prod
-     ```
-
-     * If using **Minikube**, access via:
-
-       ```
-       http://<Minikube-IP>:<NodePort>
-       ```
-     * If using **cloud provider (AWS/GCP/Azure)**, copy the **EXTERNAL-IP** and open:
-
-       ```
-       http://<EXTERNAL-IP>
-       ```
-
-   **Explanation:**
-   This confirms the deployed Nginx container is accessible externally and serving traffic.
-
-
-5. **Commit and Push Changes (if any updates)**
-
-   If you make updates to YAML or ArgoCD manifests, ensure changes are committed to Git:
-
-   ```bash
-   git add k8s/dev k8s/prod
-   git commit -m "Update application lifecycle management, rollback, and service exposure"
-   git push origin main
-   ```
-
-   **Explanation:**
-   Keeping Git updated ensures ArgoCD can **track the latest desired state** and maintain GitOps workflow.
-
-### **Deliverables for Task 3**
-
-* Applications synced with the Git repository for **dev** and **prod** environments.
-* Verified **health status** and **sync status** for both environments using ArgoCD CLI/UI.
-* Rollback functionality tested and documented.
-* Verified **Nginx app access** via Minikube (NodePort) or cloud (LoadBalancer).
-* Git repository updated with any lifecycle management changes.
-
-Perfect! Let’s define **Task 4** clearly, integrating your updated `deployment.yaml` and `service.yaml` for both **dev** and **prod** environments, and ensuring external access to the Nginx app.
-
----
+* Applications synced in dev & prod
+* Health and sync status verified
+* Git repository updated
 
 ## **Task 4: Deploy and Access Nginx Application**
 
@@ -506,229 +418,215 @@ Perfect! Let’s define **Task 4** clearly, integrating your updated `deployment
 
 Update Kubernetes manifests for dev and prod environments, deploy the Nginx application via ArgoCD, and ensure external access to the app.
 
----
+### **Steps:**
 
-### **Step 1: Update Deployment Manifest**
+1. **Update Deployment Manifests**
 
-**Prod `deployment.yaml`**:
+   **1.1 Prod `deployment.yaml`:**
 
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: sample-app
-  labels:
-    app: sample-app
-    environment: prod
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: sample-app
-  template:
-    metadata:
-      labels:
-        app: sample-app
-        environment: prod
-    spec:
-      containers:
-        - name: sample-app
-          image: nginx:1.27.2-alpine
-          imagePullPolicy: IfNotPresent
-          ports:
-            - containerPort: 80
-          resources:
-            requests:
-              cpu: "100m"
-              memory: "128Mi"
-            limits:
-              cpu: "250m"
-              memory: "256Mi"
-          livenessProbe:
-            httpGet:
-              path: /
-              port: 80
-            initialDelaySeconds: 15
-            periodSeconds: 20
-          readinessProbe:
-            httpGet:
-              path: /
-              port: 80
-            initialDelaySeconds: 5
-            periodSeconds: 10
-  strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 1
-```
+   ```yaml
+   apiVersion: apps/v1
+   kind: Deployment
+   metadata:
+     name: sample-app
+     labels:
+       app: sample-app
+       environment: prod
+   spec:
+     replicas: 3
+     selector:
+       matchLabels:
+         app: sample-app
+     template:
+       metadata:
+         labels:
+           app: sample-app
+           environment: prod
+       spec:
+         containers:
+           - name: sample-app
+             image: nginx:1.27.2-alpine
+             imagePullPolicy: IfNotPresent
+             ports:
+               - containerPort: 80
+             resources:
+               requests:
+                 cpu: "100m"
+                 memory: "128Mi"
+               limits:
+                 cpu: "250m"
+                 memory: "256Mi"
+             livenessProbe:
+               httpGet:
+                 path: /
+                 port: 80
+               initialDelaySeconds: 15
+               periodSeconds: 20
+             readinessProbe:
+               httpGet:
+                 path: /
+                 port: 80
+               initialDelaySeconds: 5
+               periodSeconds: 10
+     strategy:
+       type: RollingUpdate
+       rollingUpdate:
+         maxSurge: 1
+         maxUnavailable: 1
+   ```
 
-**Dev `deployment.yaml`** (lighter version):
+   **1.2 Dev `deployment.yaml`:**
 
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: sample-app
-  labels:
-    app: sample-app
-    environment: dev
-spec:
-  replicas: 2
-  selector:
-    matchLabels:
-      app: sample-app
-  template:
-    metadata:
-      labels:
-        app: sample-app
-        environment: dev
-    spec:
-      containers:
-        - name: sample-app
-          image: nginx:1.27.2-alpine
-          imagePullPolicy: IfNotPresent
-          ports:
-            - containerPort: 80
-          resources:
-            requests:
-              cpu: "50m"
-              memory: "64Mi"
-            limits:
-              cpu: "150m"
-              memory: "128Mi"
-          livenessProbe:
-            httpGet:
-              path: /
-              port: 80
-            initialDelaySeconds: 10
-            periodSeconds: 15
-          readinessProbe:
-            httpGet:
-              path: /
-              port: 80
-            initialDelaySeconds: 3
-            periodSeconds: 8
-  strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 1
-```
+   ```yaml
+   apiVersion: apps/v1
+   kind: Deployment
+   metadata:
+     name: sample-app
+     labels:
+       app: sample-app
+       environment: dev
+   spec:
+     replicas: 2
+     selector:
+       matchLabels:
+         app: sample-app
+     template:
+       metadata:
+         labels:
+           app: sample-app
+           environment: dev
+       spec:
+         containers:
+           - name: sample-app
+             image: nginx:1.27.2-alpine
+             imagePullPolicy: IfNotPresent
+             ports:
+               - containerPort: 80
+             resources:
+               requests:
+                 cpu: "50m"
+                 memory: "64Mi"
+               limits:
+                 cpu: "150m"
+                 memory: "128Mi"
+             livenessProbe:
+               httpGet:
+                 path: /
+                 port: 80
+               initialDelaySeconds: 10
+               periodSeconds: 15
+             readinessProbe:
+               httpGet:
+                 path: /
+                 port: 80
+               initialDelaySeconds: 3
+               periodSeconds: 8
+     strategy:
+       type: RollingUpdate
+       rollingUpdate:
+         maxSurge: 1
+         maxUnavailable: 1
+   ```
 
----
+2. **Update Service Manifests**
 
-### **Step 2: Update Service Manifest**
+   **2.1 Dev `service.yaml`:**
 
-### **Dev `service.yaml`**
+   ```yaml
+   apiVersion: v1
+   kind: Service
+   metadata:
+     name: sample-app-service
+     labels:
+       app: sample-app
+   spec:
+     selector:
+       app: sample-app
+     type: NodePort
+     ports:
+       - protocol: TCP
+         port: 80
+         targetPort: 80
+         nodePort: 31139
+   ```
 
-```yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: sample-app-service
-  labels:
-    app: sample-app
-spec:
-  selector:
-    app: sample-app
-  type: NodePort
-  ports:
-    - protocol: TCP
-      port: 80        # internal cluster port
-      targetPort: 80  # container port
-      nodePort: 31139 # already used in your dev cluster
-```
+   **2.2 Prod `service.yaml`:**
 
----
+   ```yaml
+   apiVersion: v1
+   kind: Service
+   metadata:
+     name: sample-app-service
+     labels:
+       app: sample-app
+   spec:
+     selector:
+       app: sample-app
+     type: NodePort
+     ports:
+       - protocol: TCP
+         port: 80
+         targetPort: 80
+         nodePort: 32561
+   ```
 
-### **Prod `service.yaml` (Minikube version)**
+3. **Commit and Push Changes**
 
-```yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: sample-app-service
-  labels:
-    app: sample-app
-spec:
-  selector:
-    app: sample-app
-  type: NodePort   # Changed from LoadBalancer to NodePort for Minikube
-  ports:
-    - protocol: TCP
-      port: 80
-      targetPort: 80
-      nodePort: 32561 # same as your current prod NodePort
-```
+   ```bash
+   git add k8s/dev/deployment.yaml k8s/dev/service.yaml
+   git add k8s/prod/deployment.yaml k8s/prod/service.yaml
+   git commit -m "Update Nginx deployment and service manifests for Task 4"
+   git push origin main
+   ```
 
-> 💡 You can adjust `nodePort` for dev and prod to different values if running on the same cluster.
+4. **Sync Applications with ArgoCD**
 
----
+   **4.1 Dev environment:**
 
-### **Step 3: Commit and Push Changes**
+   ```bash
+   argocd app sync sample-app-dev
+   argocd app get sample-app-dev
+   ```
 
-```bash
-git add k8s/dev/deployment.yaml k8s/dev/service.yaml
-git add k8s/prod/deployment.yaml k8s/prod/service.yaml
-git commit -m "Update Nginx deployment and service manifests for Task 4"
-git push origin main
-```
+   **4.2 Prod environment:**
 
----
+   ```bash
+   argocd app sync sample-app-prod
+   argocd app get sample-app-prod
+   ```
 
-### **Step 4: Sync with ArgoCD**
+   **Screenshot:** Verify both **sync status** and **health status**
+   ![Verify both sync status and health status.](./images/15.Updated_Argocd_status_app.png)
 
-**Dev environment:**
+5. **Access Nginx Application**
 
-```bash
-argocd app sync sample-app-dev
-argocd app get sample-app-dev
-```
+   **5.1 Use Minikube service command:**
 
-**Prod environment:**
+   ```bash
+   minikube service sample-app-service -n prod
+   ```
 
-```bash
-argocd app sync sample-app-prod
-argocd app get sample-app-prod
-```
+   **5.2 Example URLs:**
 
-> Verify both **sync status** and **health status**.
+   * Prod: `http://127.0.0.1:43573`
+   
 
----
+   **Screenshot:** Nginx Application
+   ![Nginx Application](./images/17.ngnix.png)
 
-### **Step 5: Access the Nginx App**
+6. **Verify Pods and Services**
 
-### **Accessing Nginx**
+   ```bash
+   kubectl get pods -n dev
+   kubectl get pods -n prod
+   kubectl get svc -n dev
+   kubectl get svc -n prod
+   ```
 
-1. Get Minikube IP:
+   **Explanation:**
 
-```bash
-minikube ip
-```
-
-2. Access apps in browser:
-
-* Dev: `http://<minikube-ip>:31139`
-* Prod: `http://<minikube-ip>:32561`
-```
-
-> You should see the default Nginx welcome page.
-
-
-### **Step 6: Verify Pods & Service**
-
-```bash
-kubectl get pods -n dev
-kubectl get pods -n prod
-kubectl get svc -n dev
-kubectl get svc -n prod
-```
-
-* Check that all pods are **Running**.
-* Check that the service exposes the correct **NodePort**.
-
----
+   * Ensure all pods are **Running**.
+   * Confirm services expose the correct **NodePort**.
 
 ### **Deliverables for Task 4**
 
@@ -738,10 +636,80 @@ kubectl get svc -n prod
 * Verified pod and service statuses.
 * Git repository updated with changes.
 
-Ah! I see exactly what’s happening here. You currently have **different service types** for dev and prod:
+## **Task 5: Cleanup Environment (Optional but Recommended)**
 
-* **Dev:** `NodePort` → works fine with Minikube; you can access it externally via `minikube ip:<nodePort>`.
-* **Prod:** `LoadBalancer` → Minikube doesn’t automatically provision external IPs for `LoadBalancer`, so it stays `<pending>`.
+### **Objective:**
 
-> ⚡ **Tip:** Keep NodePort numbers consistent with your current cluster (`kubectl get svc -n dev/prod`) to avoid changing existing endpoints.
+Clean up Kubernetes resources, ArgoCD applications, and local Minikube environment to free up resources and maintain a tidy workspace.
+
+### **Steps:**
+
+1. **Delete ArgoCD Applications (if no longer needed):**
+
+```bash
+argocd app delete sample-app-dev --yes
+argocd app delete sample-app-prod --yes
+```
+
+2. **Delete Kubernetes Namespaces (if used for testing):**
+
+```bash
+kubectl delete namespace dev
+kubectl delete namespace prod
+```
+
+3. **Stop and Delete Minikube Cluster:**
+
+```bash
+minikube stop
+minikube delete
+```
+
+### **Explanation:**
+
+Cleaning up ensures:
+
+* No unused resources consume CPU, memory, or storage.
+* Future deployments are not affected by leftover pods, services, or namespaces.
+* Your Minikube and local environment stay stable and clean.
+
+## **Conclusion**
+
+In this project, we successfully implemented a full **GitOps workflow** using **ArgoCD** to manage Kubernetes applications in both **dev** and **prod** environments. The key achievements include:
+
+* Creating and updating **modular Kubernetes manifests** (`deployment.yaml` and `service.yaml`) for Nginx applications.
+* Syncing applications via **ArgoCD** to maintain a desired state defined in Git.
+* Ensuring **application health and readiness** using liveness and readiness probes.
+* Deploying Nginx applications in **Minikube** environments and verifying external access via **NodePort**.
+* Maintaining a clean **GitOps workflow** by committing and pushing all changes to the repository.
+
+
+## **Final Git Push Repo**
+
+After completing all updates and verification steps, ensure all changes are committed and pushed to Git:
+
+```bash
+# Stage all changes
+git add.
+
+# Commit with a descriptive message
+git commit -m "Finalize Task 4: Nginx deployment and service manifests, synced via ArgoCD"
+
+# Push to remote repository
+git push origin main
+```
+
+> **Note:** Keeping the repository up-to-date ensures ArgoCD can track the latest desired state and maintain a consistent GitOps workflow.
+
+## **Author**
+
+**Philip Oluwaseyi Oludolamu**
+
+* Email: [oluphilix@gmail.com](mailto:oluphilix@gmail.com)
+* Phone: +905338763067
+* LinkedIn: [Philip Oludolamu](https://www.linkedin.com/in/oluphilix)
+* GitHub: [Holuphilix](https://github.com/Holuphilix)
+
+**About the Author:**
+A DevOps Engineer with practical experience in **Kubernetes, ArgoCD, Terraform, Docker, and CI/CD pipelines**, passionate about delivering automated and scalable cloud-native applications.
 
