@@ -2,11 +2,14 @@ apiVersion: v1
 kind: Service
 metadata:
   name: sample-app-service
+  labels:
+    app: sample-app
 spec:
   selector:
     app: sample-app
+  type: NodePort
   ports:
     - protocol: TCP
-      port: 80
-      targetPort: 80
-  type: NodePort
+      port: 80        # internal cluster port
+      targetPort: 80  # container port
+      nodePort: 31139 # already used in your dev cluster

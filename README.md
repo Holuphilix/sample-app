@@ -381,10 +381,6 @@ Keeps ArgoCD in sync with Git for proper GitOps workflow.
 * GitHub repository updated with all environment manifests.
 
 
-Got it 👍 I’ll extend your **Task 3** to also include **accessing the Nginx app** after deployment. Here’s the updated version:
-
----
-
 ## **Task 3: Manage Application Lifecycle with ArgoCD**
 
 ### **Objective:**
@@ -499,4 +495,253 @@ Learn how to manage the application lifecycle in ArgoCD, including **syncing**, 
 * Rollback functionality tested and documented.
 * Verified **Nginx app access** via Minikube (NodePort) or cloud (LoadBalancer).
 * Git repository updated with any lifecycle management changes.
+
+Perfect! Let’s define **Task 4** clearly, integrating your updated `deployment.yaml` and `service.yaml` for both **dev** and **prod** environments, and ensuring external access to the Nginx app.
+
+---
+
+## **Task 4: Deploy and Access Nginx Application**
+
+### **Objective:**
+
+Update Kubernetes manifests for dev and prod environments, deploy the Nginx application via ArgoCD, and ensure external access to the app.
+
+---
+
+### **Step 1: Update Deployment Manifest**
+
+**Prod `deployment.yaml`**:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sample-app
+  labels:
+    app: sample-app
+    environment: prod
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: sample-app
+  template:
+    metadata:
+      labels:
+        app: sample-app
+        environment: prod
+    spec:
+      containers:
+        - name: sample-app
+          image: nginx:1.27.2-alpine
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "250m"
+              memory: "256Mi"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+```
+
+**Dev `deployment.yaml`** (lighter version):
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sample-app
+  labels:
+    app: sample-app
+    environment: dev
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: sample-app
+  template:
+    metadata:
+      labels:
+        app: sample-app
+        environment: dev
+    spec:
+      containers:
+        - name: sample-app
+          image: nginx:1.27.2-alpine
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "150m"
+              memory: "128Mi"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 3
+            periodSeconds: 8
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+```
+
+---
+
+### **Step 2: Update Service Manifest**
+
+### **Dev `service.yaml`**
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: sample-app-service
+  labels:
+    app: sample-app
+spec:
+  selector:
+    app: sample-app
+  type: NodePort
+  ports:
+    - protocol: TCP
+      port: 80        # internal cluster port
+      targetPort: 80  # container port
+      nodePort: 31139 # already used in your dev cluster
+```
+
+---
+
+### **Prod `service.yaml` (Minikube version)**
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: sample-app-service
+  labels:
+    app: sample-app
+spec:
+  selector:
+    app: sample-app
+  type: NodePort   # Changed from LoadBalancer to NodePort for Minikube
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+      nodePort: 32561 # same as your current prod NodePort
+```
+
+> 💡 You can adjust `nodePort` for dev and prod to different values if running on the same cluster.
+
+---
+
+### **Step 3: Commit and Push Changes**
+
+```bash
+git add k8s/dev/deployment.yaml k8s/dev/service.yaml
+git add k8s/prod/deployment.yaml k8s/prod/service.yaml
+git commit -m "Update Nginx deployment and service manifests for Task 4"
+git push origin main
+```
+
+---
+
+### **Step 4: Sync with ArgoCD**
+
+**Dev environment:**
+
+```bash
+argocd app sync sample-app-dev
+argocd app get sample-app-dev
+```
+
+**Prod environment:**
+
+```bash
+argocd app sync sample-app-prod
+argocd app get sample-app-prod
+```
+
+> Verify both **sync status** and **health status**.
+
+---
+
+### **Step 5: Access the Nginx App**
+
+### **Accessing Nginx**
+
+1. Get Minikube IP:
+
+```bash
+minikube ip
+```
+
+2. Access apps in browser:
+
+* Dev: `http://<minikube-ip>:31139`
+* Prod: `http://<minikube-ip>:32561`
+```
+
+> You should see the default Nginx welcome page.
+
+
+### **Step 6: Verify Pods & Service**
+
+```bash
+kubectl get pods -n dev
+kubectl get pods -n prod
+kubectl get svc -n dev
+kubectl get svc -n prod
+```
+
+* Check that all pods are **Running**.
+* Check that the service exposes the correct **NodePort**.
+
+---
+
+### **Deliverables for Task 4**
+
+* Updated `deployment.yaml` and `service.yaml` files for dev and prod.
+* Applications synced via ArgoCD for both environments.
+* Nginx app accessible externally via NodePort.
+* Verified pod and service statuses.
+* Git repository updated with changes.
+
+Ah! I see exactly what’s happening here. You currently have **different service types** for dev and prod:
+
+* **Dev:** `NodePort` → works fine with Minikube; you can access it externally via `minikube ip:<nodePort>`.
+* **Prod:** `LoadBalancer` → Minikube doesn’t automatically provision external IPs for `LoadBalancer`, so it stays `<pending>`.
+
+> ⚡ **Tip:** Keep NodePort numbers consistent with your current cluster (`kubectl get svc -n dev/prod`) to avoid changing existing endpoints.
 

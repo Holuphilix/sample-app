@@ -2,8 +2,11 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: sample-app
+  labels:
+    app: sample-app
+    environment: prod
 spec:
-  replicas: 2
+  replicas: 3
   selector:
     matchLabels:
       app: sample-app
@@ -11,9 +14,35 @@ spec:
     metadata:
       labels:
         app: sample-app
+        environment: prod
     spec:
       containers:
         - name: sample-app
-          image: nginx:latest
+          image: nginx:1.27.2-alpine
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 80
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "250m"
+              memory: "256Mi"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1

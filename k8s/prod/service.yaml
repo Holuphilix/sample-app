@@ -2,11 +2,14 @@ apiVersion: v1
 kind: Service
 metadata:
   name: sample-app-service
+  labels:
+    app: sample-app
 spec:
   selector:
     app: sample-app
+  type: NodePort   # Changed from LoadBalancer to NodePort for Minikube
   ports:
     - protocol: TCP
       port: 80
       targetPort: 80
-  type: LoadBalancer  # change to NodePort if using Minikube
+      nodePort: 32561 # same as your current prod NodePort
